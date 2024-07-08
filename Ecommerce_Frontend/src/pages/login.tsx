@@ -1,9 +1,69 @@
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { FcGoogle } from "react-icons/fc";
+import { auth } from "../firebase";
+import { useLoginMutation } from "../redux/api/userAPI";
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
+import { MessageResponse } from "../types/api_types";
 
 const Login = () => {
   const [gender, setGender] = useState("");
   const [date, setDate] = useState("");
+
+  const [login] = useLoginMutation();
+
+  const loginHandler = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+
+      const { user } = await signInWithPopup(auth, provider);
+
+      console.log({
+        name: user.displayName!,
+        email: user.email!,
+        photo: user.photoURL!,
+        gender,
+        role: "user",
+        dob: date,
+        _id: user.uid,
+      });
+
+      const res = await login({
+        name: user.displayName!,
+        email: user.email!,
+        photo: user.photoURL!,
+        gender,
+        role: "user",
+        dob: date,
+        _id: user.uid,
+      });
+
+      // if (res && "data" in res && res.data) {
+      //   toast.success(res.data.message);
+      // } else if (res && "error" in res && res.error) {
+      //   const error = res.error as FetchBaseQueryError;
+      //   if (error.data) {
+      //     const message = (error.data as MessageResponse).message;
+      //     toast.error(message);
+      //   } else {
+      //     toast.error("An unexpected error occurred.");
+      //   }
+      // } else {
+      //   toast.error("An unexpected error occurred.");
+      // }
+
+      if ("data" in res) {
+        toast.success(res.data!.message);
+      } else {
+        const error = res.error as FetchBaseQueryError;
+        const message = (error.data as MessageResponse).message;
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("Sign in faild");
+    }
+  };
 
   return (
     <div className="login">
@@ -30,7 +90,7 @@ const Login = () => {
 
         <div>
           <p>Already Signed In Once</p>
-          <button>
+          <button onClick={loginHandler}>
             <FcGoogle /> <span>Sign in with google</span>
           </button>
         </div>
